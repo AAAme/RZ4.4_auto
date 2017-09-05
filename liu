@@ -1,0 +1,165 @@
+# data ： 2017/09/05
+# editor : liuyanghui
+#
+import pymysql
+
+
+class CustomInfo(object):
+    """
+    
+        通过 id 或者级别，规模和状态获取客户信息，以字典形式返回
+    """
+    HOST = "localhost"
+    USER = "root"
+    PASSWORD = ""
+    DB = "ranzhi"
+    PORT = 3306
+    CHARSET = "utf8"
+
+    sql_file_path = r"C:\Users\hzpower\PycharmProjects\customer_info\data\custom_data.sql"
+    mysql_data = None
+
+    def conn_mysql(self, path):
+        """
+        根据路径执行初始化数据库并且执行sql脚本,数据存储在self.mysql_data中
+        :param path: 
+        :return: 
+        """
+        sql_file = open(path, mode="r", encoding="utf8")
+        sql_script = sql_file.read()
+        mysql_connect = pymysql.connect(host=self.HOST, user=self.USER,
+                                        passwd=self.PASSWORD, db=self.DB, port=self.PORT, charset=self.CHARSET)
+        mysql_cursor = mysql_connect.cursor()
+        mysql_cursor.execute(sql_script)
+        self.mysql_data = mysql_cursor.fetchall()
+
+        mysql_cursor.close()
+        mysql_connect.close()
+        sql_file.close()
+
+    def get_customer_by_id(self, num):
+        """
+        通过 id 获取客户信息
+        :param num: 
+        :return: 字典形式的客户信息
+        """
+
+        self.conn_mysql(r"C:\Users\hzpower\PycharmProjects\customer_info\data\custom_data.sql")
+        custom_info = None
+        for row in self.mysql_data:
+            if row[0] == num:
+                custom_info = {
+                    "客户编号": row[0], "名称": row[1], "对公账号": row[2],
+                    "级别": row[3], "状态": row[4], "指派给": row[5],
+                    "规模": row[6], "类型": row[7], "行业": row[8],
+                    "区域": row[9], "联系人编号": self.get_contact_by_id(row[10])
+                }
+                break
+            else:
+                pass
+        return custom_info
+
+    def get_contact_by_id(self, num):
+        """
+        根据联系人的编号返回联系人信息，没有则返回空
+        :param num:
+        :return:
+        """
+        self.conn_mysql(r"C:\Users\hzpower\PycharmProjects\customer_info\data\contact_data.sql")
+        contact_info = None
+        for row in self.mysql_data:
+            if row[0] == num:
+                contact_info = {
+                    "联系人编号": row[0], "真实姓名": row[1], "邮箱": row[2],
+                    "QQ号": row[3], "电话": row[4]
+                }
+                break
+            else:
+                pass
+        return contact_info
+
+    def get_customer_by_filter(self, level='', size=0, status=''):
+        """
+        通过级别，规模和状态获取客户信息，参数是与形式作用,默认都为空
+        :param level: 
+        :param size: 
+        :param status: 
+        :return: 
+        """
+        custom_data = []
+        if (level or size or status) == 0:
+            return None
+        else:
+            custom_num1 = self.get_customer_by_level(level)
+            custom_num2 = self.get_customer_by_size(size)
+            custom_num3 = self.get_customer_by_status(status)
+            custom_num_total = set(custom_num1) & set(custom_num2) & set(custom_num3)
+        for ele in custom_num_total:
+            custom_data.append(self.get_customer_by_id(ele))
+
+        return custom_data
+
+    def get_customer_by_level(self, level):
+        """
+        根据level获取满足条件的客户编号
+        :param level: 
+        :return: 
+        """
+        self.conn_mysql(r"C:\Users\hzpower\PycharmProjects\customer_info\data\chosed_custom.sql")
+        custom_num = []
+        if (level is None) or (level == "0") or (level == ''):
+            for row in self.mysql_data:
+                custom_num.append(row[3])
+        else:
+            for row in self.mysql_data:
+                if level == row[0]:
+                    custom_num.append(row[3])
+                else:
+                    pass
+        return custom_num
+
+    def get_customer_by_size(self, size):
+        """
+        根据size获取满足条件的客户编号
+        :param size: 
+        :return: 
+        """
+        self.conn_mysql(r"C:\Users\hzpower\PycharmProjects\customer_info\data\chosed_custom.sql")
+        custom_num = []
+        if (size is None) or (size == 0) or (size == ''):
+            for row in self.mysql_data:
+                custom_num.append(row[3])
+        else:
+            for row in self.mysql_data:
+                if size == row[1]:
+                    custom_num.append(row[3])
+                else:
+                    pass
+        return custom_num
+
+    def get_customer_by_status(self, status):
+        """
+        根据status获取满足条件的客户编号
+        :param status: 
+        :return: 
+        """
+        self.conn_mysql(r"C:\Users\hzpower\PycharmProjects\customer_info\data\chosed_custom.sql")
+        custom_num = []
+        if (status is None) or (status == "0") or (status == ''):
+            for row in self.mysql_data:
+                custom_num.append(row[3])
+        else:
+            for row in self.mysql_data:
+                if status == row[2]:
+                    custom_num.append(row[3])
+                else:
+                    pass
+        return custom_num
+
+if __name__ == "__main__":
+
+    cus_info = CustomInfo()
+    print(cus_info.get_customer_by_level('A'))
+    print(cus_info.get_customer_by_size(2))
+    print(cus_info.get_customer_by_status(''))
+    print(cus_info.get_customer_by_filter('D', 4, ''))
